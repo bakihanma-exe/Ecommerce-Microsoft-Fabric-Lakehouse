@@ -1,19 +1,28 @@
-# E-Commerce Lakehouse — interview preparation
+# Olist Fabric Lakehouse — interview preparation
 
-## Resume-supported explanation
-"I worked on an e-commerce lakehouse pipeline where Azure Data Factory ingested source data into ADLS Gen2. The data was processed in a Microsoft Fabric Lakehouse using Fabric Notebooks with PySpark and Spark SQL. I organized the processing into Bronze, Silver and Gold Delta layers, applying cleansing, deduplication, aggregation and data-quality checks."
+## Project walkthrough
+"I used the Brazilian E-Commerce Public Dataset by Olist, which contains nine related CSVs for orders, customers, order items, payments, reviews, products, sellers, geolocation and category translation. I designed a Fabric medallion pipeline: Bronze preserves source data, Silver standardizes types and enforces table grain, and Gold produces order-level and business aggregates."
 
-Only claim hands-on steps you have personally executed and can demonstrate.
+Only describe cloud steps you have personally executed. This repository provides implementation code; it does not itself prove a Fabric workspace deployment.
 
-## Be ready to explain
-- Why separate Bronze, Silver and Gold?
-- How does ADF land data into ADLS Gen2?
-- How does a Fabric Lakehouse store and expose Delta tables?
-- How do PySpark and Spark SQL fit into notebook transformations?
-- How would you define a business key for deduplication?
-- How do you make notebook reruns idempotent?
-- Which data-quality checks run before promoting Silver to Gold?
-- How would you monitor a Fabric pipeline and notebook run?
+## Key engineering decisions
+- Bronze reads source CSV fields as strings to avoid unreliable schema inference.
+- Silver casts order timestamps, item prices, freight, payment values, review scores and keys.
+- Deduplication uses each table's true key/grain. Order items use (order_id, order_item_id); payments use (order_id, payment_sequential).
+- Geolocation has many coordinate samples per zip prefix, so Silver aggregates them before dimension use.
+- Items, payments and reviews are aggregated to order_id before joining to orders. This prevents one-to-many join fan-out and inflated revenue.
+- Gold revenue is item price + freight in BRL. It is not profit or accounting revenue because product cost, discounts and all accounting adjustments are not supplied.
+- The dataset is a fixed historical snapshot; the implemented load is full refresh, not CDC.
 
-## Still to confirm
-Exact source dataset, schema, keys, incremental load design, KPIs, and report output.
+## Interview questions to prepare
+1. Why preserve raw values as strings in Bronze?
+2. How did you decide the grain and deduplication key for each table?
+3. What is join fan-out? Demonstrate it with orders, items and payments.
+4. Why is customer_id different from customer_unique_id?
+5. Why does geolocation need aggregation before joining?
+6. How would you implement incremental ingestion if a future source provided a reliable modified timestamp?
+7. How would you quarantine invalid rows and reconcile source/Silver counts?
+8. How would you expose Gold tables to Power BI and monitor Fabric pipeline runs?
+
+## Dataset attribution
+Olist, Brazilian E-Commerce Public Dataset by Olist, Kaggle. License: CC BY-NC-SA 4.0 (non-commercial).
