@@ -1,29 +1,24 @@
-# Microsoft Fabric notebook — source schema discovery
-# Run after placing the approved e-commerce CSV dataset in Files/landing/ecommerce/.
-# This produces an inventory for designing accurate Silver transformations.
-
+# Microsoft Fabric notebook — Olist source schema discovery
 from pyspark.sql import functions as F
 
-SOURCE_PATH = "Files/landing/ecommerce/"
-df = (spark.read
-    .option("header", True)
-    .option("inferSchema", False)
-    .option("mode", "PERMISSIVE")
-    .csv(SOURCE_PATH))
+SOURCE_DIR = "Files/landing/olist"
+FILES = [
+    "olist_orders_dataset.csv", "olist_customers_dataset.csv",
+    "olist_order_items_dataset.csv", "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv", "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv", "olist_geolocation_dataset.csv",
+    "product_category_name_translation.csv"
+]
 
-if not df.columns:
-    raise ValueError(f"No columns found at {SOURCE_PATH}; check the landing path and CSV headers.")
+for file_name in FILES:
+    path = f"{SOURCE_DIR}/{file_name}"
+    df = (spark.read.option("header", True).option("inferSchema", False)
+          .option("mode", "PERMISSIVE").csv(path))
+    if not df.columns:
+        raise ValueError(f"No header discovered for {path}")
+    print(f"\n{file_name}: {df.count()} rows")
+    for field in df.schema.fields:
+        print(f"  {field.name}: {field.dataType.simpleString()}")
+    display(df.limit(5))
 
-print("Discovered columns (raw CSV values are strings):")
-for field in df.schema.fields:
-    print(f"- {field.name}: {field.dataType.simpleString()}")
-
-print(f"Sample row count: {df.count()}")
-display(df.limit(20))
-
-# Before implementation, record:
-# 1) source dataset URL/license and file list
-# 2) table grain and primary/business key for each file
-# 3) date/time fields and timezone assumptions
-# 4) relationship keys and cardinality
-# 5) null/duplicate expectations and business KPI definitions
+# Compare the discovered headers with schemas/olist_schema.json before processing.
