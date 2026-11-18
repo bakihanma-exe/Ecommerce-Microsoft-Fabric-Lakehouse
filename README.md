@@ -1,27 +1,42 @@
-# E-Commerce Lakehouse Pipeline
+# E-Commerce Microsoft Fabric Lakehouse — Olist
 
-This project folder is based on the scope stated in the uploaded resume. No separate E-Commerce implementation walkthrough or exact dataset schema was found in the uploaded project documents.
+An end-to-end portfolio project using the **Brazilian E-Commerce Public Dataset by Olist** and a Microsoft Fabric medallion architecture.
 
-## Resume-documented scope
-- Azure Data Factory ingests e-commerce data into ADLS Gen2.
-- Microsoft Fabric Lakehouse is the processing environment.
-- Fabric Notebooks use PySpark and Spark SQL.
-- Cleansing, deduplication, aggregation and data-quality checks.
-- Data is organized into Bronze, Silver and Gold Delta layers.
+## Dataset
+- Source: https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
+- License: CC BY-NC-SA 4.0 — attribution required; non-commercial use only; share-alike applies to adapted dataset material.
+- Period: 2016–2018
+- Nine relational CSV files: orders, customers, order items, payments, reviews, products, sellers, geolocation and category translations.
+- Exact headers and table grain: `schemas/olist_schema.json`.
 
-## Planned folder contents
-- `adf/`: ingestion pipeline design and parameters
-- `notebooks/`: Fabric-compatible Bronze, Silver and Gold notebook templates
-- `sql/`: Spark SQL transformations and validation queries
-- `docs/`: architecture, assumptions and interview preparation
-- `tests/`: schema and quality checks
+Raw data is not committed. Download with your own Kaggle CLI credentials using `bash scripts/download_olist_dataset.sh`, then validate with `python scripts/validate_olist_dataset.py`. Never commit Kaggle tokens or raw customer data.
 
-## Implementation status and next steps
-- This repository currently contains a **schema-neutral starter**, not a fully runnable e-commerce pipeline.
-- No source dataset, file names, columns, business keys, timestamp/watermark fields or KPI definitions were supplied in the resume material.
-- The Bronze notebook is a full-refresh landing template. Run the schema-discovery notebook after placing the approved source files in the Fabric Lakehouse Files area.
-- Do not enable deduplication, incremental MERGE or business aggregates until the source key, update timestamp and metric definitions are confirmed.
-- Once the dataset is selected, document its license/source, exact headers, data types, grain, relationships and expected row counts before adding curated transformations.
+## Architecture
+Kaggle Olist CSVs → ADF (optional orchestration/copy to ADLS Gen2) → Fabric Lakehouse Files landing → Bronze Delta → Silver Delta → Gold Delta → Power BI.
 
-## Important
-The source material does not identify the exact e-commerce dataset, column names, source system, or business KPIs. The templates in this folder are clearly marked as adaptable examples until a dataset is selected and its schema is verified. Do not describe them as a deployed production pipeline.
+## Repository
+- `schemas/olist_schema.json`: nine-file source contract and grains
+- `scripts/download_olist_dataset.sh`: official Kaggle CLI download
+- `scripts/validate_olist_dataset.py`: exact file/header validation
+- `tests/test_olist_schema.py`: standard-library validator tests
+- `notebooks/00_source_schema_discovery.py`: profile raw files
+- `notebooks/01_bronze_ingestion.py`: one Bronze Delta table per source file
+- `notebooks/02_silver_transformation.py`: typed, deduplicated Silver tables
+- `notebooks/03_gold_aggregation.py`: order fact and business aggregates
+- `sql/data_quality_checks.sql`: key, value, referential and date checks
+- `docs/olist-dataset-guide.md`: setup, grain, join and KPI decisions
+- `docs/architecture.md`: layer design and orchestration
+
+## Run
+1. Install/configure Kaggle CLI locally.
+2. Run `bash scripts/download_olist_dataset.sh`.
+3. Run `python scripts/validate_olist_dataset.py`.
+4. Upload the nine CSVs to Fabric Lakehouse `Files/landing/olist/`.
+5. Run notebooks 00, 01, 02, 03 in order.
+6. Run the SQL checks against the created Silver/Gold tables.
+7. Connect Power BI to the Gold tables via the Fabric Lakehouse SQL analytics endpoint.
+
+## Important modelling choices
+The item, payment and review tables are one-to-many from orders. The Gold order fact aggregates each child table to one row per order before joining. This prevents join fan-out and overstated totals. Revenue values are item price plus freight in BRL, not accounting revenue, profit or margin.
+
+The dataset is a static historical snapshot. The notebooks use full refresh/overwrite; this is not incremental CDC. Fabric notebooks must be run in a configured workspace before claiming end-to-end execution.
