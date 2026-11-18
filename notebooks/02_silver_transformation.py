@@ -25,7 +25,7 @@ for c in ["order_purchase_timestamp","order_approved_at","order_delivered_carrie
     orders = orders.withColumn(c, F.to_timestamp(c))
 save(deduplicate(orders, ["order_id"]), "orders")
 
-customers = trim_strings(read_bronze("customers")).withColumn("customer_zip_code_prefix", F.col("customer_zip_code_prefix").cast(IntegerType()))
+customers = trim_strings(read_bronze("customers"))  # Keep ZIP prefixes as strings to preserve leading zeros
 save(deduplicate(customers, ["customer_id"]), "customers")
 
 items = trim_strings(read_bronze("order_items"))
@@ -52,12 +52,11 @@ for c in ["product_name_lenght","product_description_lenght","product_photos_qty
     products = products.withColumn(c, F.col(c).cast(IntegerType()))
 save(deduplicate(products, ["product_id"]), "products")
 
-sellers = trim_strings(read_bronze("sellers")).withColumn("seller_zip_code_prefix", F.col("seller_zip_code_prefix").cast(IntegerType()))
+sellers = trim_strings(read_bronze("sellers"))  # Keep ZIP prefixes as strings to preserve leading zeros
 save(deduplicate(sellers, ["seller_id"]), "sellers")
 
 geo = trim_strings(read_bronze("geolocation"))
-geo = (geo.withColumn("geolocation_zip_code_prefix", F.col("geolocation_zip_code_prefix").cast(IntegerType()))
-    .withColumn("geolocation_lat", F.col("geolocation_lat").cast(DoubleType()))
+geo = (geo.withColumn("geolocation_lat", F.col("geolocation_lat").cast(DoubleType()))
     .withColumn("geolocation_lng", F.col("geolocation_lng").cast(DoubleType())))
 geo = geo.groupBy("geolocation_zip_code_prefix","geolocation_city","geolocation_state").agg(
     F.avg("geolocation_lat").alias("latitude"), F.avg("geolocation_lng").alias("longitude"))
