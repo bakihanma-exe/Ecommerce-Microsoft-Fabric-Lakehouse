@@ -1,0 +1,16 @@
+# Raw licensed dataset files (download locally; do not commit)
+data/raw/*
+!data/raw/.gitkeep
+data/olist/*
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local Kaggle credentials
+.kaggle/
+kaggle.json
